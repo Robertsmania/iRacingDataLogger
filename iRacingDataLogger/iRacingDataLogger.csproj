@@ -11,4 +11,9 @@
     <PackageReference Include="CsvHelper" Version="27.2.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\iRacingSdkWrapper\iRacingSdkWrapper\iRacingSdkWrapper.csproj" />
+    <ProjectReference Include="..\iRacingSdkWrapper\irsdkSharp\iRSDKSharp.csproj" />
+  </ItemGroup>
+
 </Project>
