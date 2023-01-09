@@ -6,10 +6,13 @@ namespace IRDataLogger
 {
     internal class IRDataLogger
     {
-        const int scale = 100;
+        const string cFileName = "IRPerfData.csv";
+        const int cScale = 100;
+
         public static SdkWrapper _iRSDKWrapper = new SdkWrapper();
         public static List<PerformanceData> gDataCollected = new List<PerformanceData>();
         public static bool gWriteHeader = true;
+        public static double gLastReplayFrameNum = -1;
 
         public class PerformanceData
         {
@@ -25,13 +28,20 @@ namespace IRDataLogger
         static void OnTelemetryUpdated(object ?sender, SdkWrapper.TelemetryUpdatedEventArgs e)
         {
             double ReplayFrameNum = e.TelemetryInfo.ReplayFrameNum.Value;
+            if (gLastReplayFrameNum == ReplayFrameNum)
+            {
+                Console.WriteLine("Simulation paused, skipping data collection.");
+                return;
+            }
+
+            gLastReplayFrameNum = ReplayFrameNum;
             double ReplaySessionNum = e.TelemetryInfo.ReplaySessionNum.Value;
             int ReplaySessionTime = (int)e.TelemetryInfo.ReplaySessionTime.Value;
 
             double FrameRate = _iRSDKWrapper.GetTelemetryValue<float>("FrameRate").Value;
-            double CpuUsageBG = scale * _iRSDKWrapper.GetTelemetryValue<float>("CpuUsageBG").Value;
-            double CpuUsageFG = scale * _iRSDKWrapper.GetTelemetryValue<float>("CpuUsageFG").Value;
-            double GpuUsage = scale * _iRSDKWrapper.GetTelemetryValue<float>("GpuUsage").Value;
+            double CpuUsageBG = cScale * _iRSDKWrapper.GetTelemetryValue<float>("CpuUsageBG").Value;
+            double CpuUsageFG = cScale * _iRSDKWrapper.GetTelemetryValue<float>("CpuUsageFG").Value;
+            double GpuUsage = cScale * _iRSDKWrapper.GetTelemetryValue<float>("GpuUsage").Value;
 
             PerformanceData thisSample = new PerformanceData
             {
@@ -60,7 +70,7 @@ namespace IRDataLogger
             _iRSDKWrapper.TelemetryUpdateFrequency = 4;
             _iRSDKWrapper.Start();
 
-            Console.WriteLine("Ready to collect iRacing performance data.\nEnter to quit.");
+            Console.WriteLine("Ready to collect iRacing performance data from your iRacing replay.\nEnter to quit.");
             Console.ReadLine(); ;
 
             _iRSDKWrapper.Stop();
@@ -72,14 +82,14 @@ namespace IRDataLogger
                 return;
             }
 
-            Console.Write($"Data Collected. {gDataCollected.Count().ToString()} samples");
-
-            using (var stream = File.Open("IRPerfData.csv", FileMode.Create))
+            using (var stream = File.Open(cFileName, FileMode.Create))
             using (var writer = new StreamWriter(stream))
             using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
             {
                 csv.WriteRecords(gDataCollected);
             }
+
+            Console.Write($"Data Collected.\n{gDataCollected.Count().ToString()} samples.\nSaved to: {cFileName}");
         }
     }
 }
